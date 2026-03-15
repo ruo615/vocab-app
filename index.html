@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vocab Master</title>
+    <title>Vocab Master - Quiz Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
         .safe-top { padding-top: env(safe-area-inset-top); }
-        .glass-header { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+        .glass-header { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
         .word-card { border-left: 4px solid #6366f1; transition: transform 0.1s; }
-        .word-card:active { transform: scale(0.98); background-color: #f1f5f9; }
         .zh-text { max-height: 0; overflow: hidden; transition: all 0.3s ease; opacity: 0; }
         .zh-text.show { max-height: 100px; opacity: 1; margin-top: 8px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        /* 測驗彈窗樣式 */
+        #quiz-modal { display: none; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        .option-btn:active { transform: scale(0.95); }
     </style>
 </head>
-<body class="pb-12">
+<body class="pb-24">
 
     <div class="glass-header safe-top pb-8 px-6 text-white shadow-2xl rounded-b-[40px]">
         <div class="pt-8">
             <h1 class="text-2xl font-extrabold tracking-tight">Vocab Master</h1>
-            <p class="text-white/70 text-xs">專為手機設計的單字口袋書</p>
+            <p class="text-white/70 text-xs">智能測驗口袋書</p>
         </div>
         <div class="mt-8 flex justify-between items-end">
             <div>
@@ -37,9 +39,8 @@
 
     <div class="flex gap-3 px-6 -mt-5 overflow-x-auto no-scrollbar relative z-10">
         <button onclick="setFilter('全部')" class="tab-btn active bg-white text-indigo-600 shadow-lg px-6 py-3 rounded-2xl text-sm font-bold transition-all border border-indigo-50">全部</button>
+        <button onclick="setFilter('課堂')" class="tab-btn bg-white/80 text-slate-500 shadow-sm px-6 py-3 rounded-2xl text-sm font-bold transition-all">課堂單字</button>
         <button onclick="setFilter('多益')" class="tab-btn bg-white/80 text-slate-500 shadow-sm px-6 py-3 rounded-2xl text-sm font-bold transition-all">多益商務</button>
-        <button onclick="setFilter('生活')" class="tab-btn bg-white/80 text-slate-500 shadow-sm px-6 py-3 rounded-2xl text-sm font-bold transition-all">日常口語</button>
-        <button onclick="setFilter('進階')" class="tab-btn bg-white/80 text-slate-500 shadow-sm px-6 py-3 rounded-2xl text-sm font-bold transition-all">進階學術</button>
     </div>
 
     <div class="px-6 mt-8">
@@ -49,52 +50,78 @@
                 <input type="text" id="zh-input" placeholder="中文翻譯" class="w-full p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-400 outline-none font-semibold">
                 <div class="flex gap-3">
                     <select id="cat-input" class="bg-slate-50 rounded-2xl px-4 text-slate-500 font-bold text-sm outline-none">
+                        <option value="課堂">課堂</option>
                         <option value="多益">多益</option>
                         <option value="生活">生活</option>
-                        <option value="進階">進階</option>
                     </select>
                     <button id="add-btn" class="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 active:bg-indigo-700 transition-all">
-                        ＋ 新增單字
+                        ＋ 新增
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="vocab-list" class="px-6 mt-8 space-y-4">
-        </div>
+    <div id="vocab-list" class="px-6 mt-8 space-y-4"></div>
 
-    <div class="px-10 mt-12 mb-8">
-        <button onclick="resetData()" class="w-full text-slate-400 text-[10px] font-bold tracking-widest uppercase py-4 border-2 border-dashed border-slate-200 rounded-3xl">
-            Reset to Default Database
+    <div class="fixed bottom-6 left-0 right-0 px-6 flex gap-3">
+        <button onclick="startQuiz()" class="flex-1 bg-purple-600 text-white font-black py-5 rounded-3xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2">
+            📝 開始測驗
+        </button>
+        <button onclick="resetData()" class="px-6 bg-white text-slate-400 font-bold rounded-3xl border border-slate-100 shadow-sm text-xs">
+            RESET
         </button>
     </div>
 
+    <div id="quiz-modal" class="fixed inset-0 z-50 flex items-center justify-center px-6">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl relative">
+            <button onclick="closeQuiz()" class="absolute top-6 right-6 text-slate-300 text-xl">✕</button>
+            <div class="text-center">
+                <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-2 block">QUIZ MODE</span>
+                <h2 id="quiz-q" class="text-3xl font-black text-slate-800 mb-8">Word?</h2>
+                <div id="quiz-options" class="space-y-3">
+                    </div>
+                <div id="quiz-feedback" class="mt-6 font-bold h-6"></div>
+            </div>
+        </div>
+    </div>
+
 <script>
-    const library = [
-        // 多益商務 (50)
-        { en: "Implement", zh: "實施；執行", cat: "多益" }, { en: "Submit", zh: "提交", cat: "多益" }, { en: "Proposal", zh: "提案", cat: "多益" }, { en: "Negotiate", zh: "談判", cat: "多益" }, { en: "Agenda", zh: "議程", cat: "多益" }, { en: "Personnel", zh: "人事", cat: "多益" }, { en: "Contract", zh: "合約", cat: "多益" }, { en: "Inventory", zh: "庫存", cat: "多益" }, { en: "Revenue", zh: "營收", cat: "多益" }, { en: "Voucher", zh: "憑證", cat: "多益" },
-        { en: "Acquisition", zh: "收購", cat: "多益" }, { en: "Budget", zh: "預算", cat: "多益" }, { en: "Client", zh: "客戶", cat: "多益" }, { en: "Strategy", zh: "策略", cat: "多益" }, { en: "Promotion", zh: "促銷/晉升", cat: "多益" }, { en: "Conference", zh: "會議", cat: "多益" }, { en: "Innovation", zh: "創新", cat: "多益" }, { en: "Quarterly", zh: "季度的", cat: "多益" }, { en: "Logistics", zh: "物流", cat: "多益" }, { en: "Reliable", zh: "可靠的", cat: "多益" },
-        { en: "Efficient", zh: "有效率的", cat: "多益" }, { en: "Invoice", zh: "發票", cat: "多益" }, { en: "Representative", zh: "代表人", cat: "多益" }, { en: "Certificate", zh: "證書", cat: "多益" }, { en: "Evaluation", zh: "評估", cat: "多益" }, { en: "Announcement", zh: "公告", cat: "多益" }, { en: "Regulation", zh: "規定", cat: "多益" }, { en: "Registration", zh: "註冊", cat: "多益" }, { en: "Warranty", zh: "保固", cat: "多益" }, { en: "Refund", zh: "退款", cat: "多益" },
-        { en: "Signature", zh: "簽名", cat: "多益" }, { en: "Departure", zh: "啟程", cat: "多益" }, { en: "Destination", zh: "目的地", cat: "多益" }, { en: "Reservation", zh: "預約", cat: "多益" }, { en: "Accommodate", zh: "容納/配合", cat: "多益" }, { en: "Compensation", zh: "補償/報酬", cat: "多益" }, { en: "Delegation", zh: "代表團", cat: "多益" }, { en: "Exhibition", zh: "展覽", cat: "多益" }, { en: "Mandatory", zh: "強制的", cat: "多益" }, { en: "Merchandise", zh: "商品", cat: "多益" },
-        { en: "Outstanding", zh: "傑出的/未償付的", cat: "多益" }, { en: "Overseas", zh: "海外的", cat: "多益" }, { en: "Precaution", zh: "預防措施", cat: "多益" }, { en: "Productivity", zh: "生產力", cat: "多益" }, { en: "Profitable", zh: "有利潤的", cat: "多益" }, { en: "Recruitment", zh: "招聘", cat: "多益" }, { en: "Substitute", zh: "替代品", cat: "多益" }, { en: "Transaction", zh: "交易", cat: "多益" }, { en: "Urgent", zh: "緊急的", cat: "多益" }, { en: "Versatile", zh: "多才多藝的/多功能的", cat: "多益" },
+const library = [
+    // 課堂單字 (核心清單)
+    { en: "Pandemic", zh: "流行病/流行的", cat: "課堂" },
+    { en: "Viral", zh: "病毒的", cat: "課堂" },
+    { en: "Pneumonia", zh: "肺炎", cat: "課堂" },
+    { en: "Diarrhea", zh: "腹瀉", cat: "課堂" },
+    { en: "Nausea", zh: "噁心作嘔", cat: "課堂" },
+    { en: "Neurological", zh: "神經系統的", cat: "課堂" },
+    { en: "Acute", zh: "急性/劇烈的", cat: "課堂" },
+    { en: "Sepsis", zh: "敗血症", cat: "課堂" },
+    { en: "Septic", zh: "敗血症的/使腐敗的", cat: "課堂" },
+    { en: "Mutation", zh: "突變", cat: "課堂" },
+    { en: "Variant", zh: "易變/變種", cat: "課堂" },
+    { en: "Acute respiratory distress syndrome", zh: "急性呼吸窘迫症候群", cat: "課堂" },
+    { en: "Multi-organ failure", zh: "多重器官衰竭", cat: "課堂" },
+    { en: "Transmissible", zh: "可傳染的", cat: "課堂" },
+    { en: "Precaution", zh: "預防/預防措施", cat: "課堂" },
+    { en: "Molecular", zh: "分子的", cat: "課堂" },
+    { en: "Swab", zh: "藥籤/棉花棒", cat: "課堂" },
+    { en: "Confirm infection", zh: "確診", cat: "課堂" },
+    { en: "Antigen", zh: "抗原", cat: "課堂" },
+    { en: "Protein", zh: "蛋白質", cat: "課堂" },
+    { en: "Isolation", zh: "隔離/孤立", cat: "課堂" },
+    { en: "Quarantine", zh: "隔離/檢疫", cat: "課堂" },
+    { en: "Immune", zh: "免疫者/免疫的", cat: "課堂" },
+    { en: "Efficacy", zh: "效力/功效", cat: "課堂" },
 
-        // 生活口語 (50)
-        { en: "Hang out", zh: "閒逛/鬼混", cat: "生活" }, { en: "Awesome", zh: "太棒了", cat: "生活" }, { en: "Chill", zh: "冷靜/放鬆", cat: "生活" }, { en: "Bummer", zh: "令人失望的事", cat: "生活" }, { en: "No biggie", zh: "沒什麼大不了", cat: "生活" }, { en: "Catch up", zh: "敘舊/跟上", cat: "生活" }, { en: "Cravings", zh: "渴望(食慾)", cat: "生活" }, { en: "Dine in", zh: "內用", cat: "生活" }, { en: "Take out", zh: "外帶", cat: "生活" }, { en: "Settle down", zh: "安定下來", cat: "生活" },
-        { en: "Go with the flow", zh: "隨遇而安", cat: "生活" }, { en: "Piece of cake", zh: "小事一樁", cat: "生活" }, { en: "Under the weather", zh: "不舒服", cat: "生活" }, { en: "Break a leg", zh: "祝好運", cat: "生活" }, { en: "Call it a day", zh: "到此為止", cat: "生活" }, { en: "Cheer up", zh: "振作起來", cat: "生活" }, { en: "Count me in", zh: "算我一份", cat: "生活" }, { en: "Get over it", zh: "克服它/看開點", cat: "生活" }, { en: "Give it a shot", zh: "試試看", cat: "生活" }, { en: "Keep in touch", zh: "保持聯絡", cat: "生活" },
-        { en: "Make up your mind", zh: "下定決心", cat: "生活" }, { en: "Never mind", zh: "沒關係/別在意", cat: "生活" }, { en: "On the way", zh: "在路上", cat: "生活" }, { en: "Out of blue", zh: "突然地", cat: "生活" }, { en: "Pull yourself together", zh: "冷靜下來", cat: "生活" }, { en: "So far so good", zh: "目前為止都好", cat: "生活" }, { en: "Take it easy", zh: "放輕鬆", cat: "生活" }, { en: "Tell me about it", zh: "那還用說(表同意)", cat: "生活" }, { en: "What's up", zh: "怎麼了/近況如何", cat: "生活" }, { en: "You bet", zh: "當然/一點也沒錯", cat: "生活" },
-        { en: "Backpack", zh: "背包", cat: "生活" }, { en: "Caffeine", zh: "咖啡因", cat: "生活" }, { en: "Convenience store", zh: "便利商店", cat: "生活" }, { en: "Delivery", zh: "外送/遞送", cat: "生活" }, { en: "Eatery", zh: "小餐館", cat: "生活" }, { en: "Fragile", zh: "易碎的", cat: "生活" }, { en: "Grocery", zh: "雜貨", cat: "生活" }, { en: "Hangover", zh: "宿醉", cat: "生活" }, { en: "Ingredient", zh: "材料/成分", cat: "生活" }, { en: "Laundry", zh: "換洗衣物", cat: "生活" },
-        { en: "Night owl", zh: "熬夜的人", cat: "生活" }, { en: "Overwhelmed", zh: "難以承受的", cat: "生活" }, { en: "Queue", zh: "排隊", cat: "生活" }, { en: "Recipe", zh: "食譜", cat: "生活" }, { en: "Shortage", zh: "短缺", cat: "生活" }, { en: "Thrifty", zh: "節儉的", cat: "生活" }, { en: "Utility bill", zh: "水電費單", cat: "生活" }, { en: "Vacant", zh: "空缺的", cat: "生活" }, { en: "Workout", zh: "健身", cat: "生活" }, { en: "Zone out", zh: "放空", cat: "生活" },
+    // 多益商務 (參考)
+    { en: "Implement", zh: "實施/執行", cat: "多益" },
+    { en: "Proposal", zh: "提案", cat: "多益" },
+    { en: "Negotiate", zh: "談判", cat: "多益" },
+    { en: "Revenue", zh: "營收", cat: "多益" }
+];
 
-        // 進階學術 (50)
-        { en: "Hypothesis", zh: "假設", cat: "進階" }, { en: "Analysis", zh: "分析", cat: "進階" }, { en: "Cognitive", zh: "認知的", cat: "進階" }, { en: "Empirical", zh: "經驗主義的", cat: "進階" }, { en: "Framework", zh: "框架/架構", cat: "進階" }, { en: "Methodology", zh: "方法論", cat: "進階" }, { en: "Phenomenon", zh: "現象", cat: "進階" }, { en: "Significant", zh: "顯著的", cat: "進階" }, { en: "Theory", zh: "理論", cat: "進階" }, { en: "Variables", zh: "變數", cat: "進階" },
-        { en: "Abstract", zh: "抽象的/摘要", cat: "進階" }, { en: "Acknowledge", zh: "承認/感謝", cat: "進階" }, { en: "Aggregate", zh: "總計", cat: "進階" }, { en: "Allocate", zh: "分配", cat: "進階" }, { en: "Ambiguous", zh: "模稜兩可的", cat: "進階" }, { en: "Amend", zh: "修訂", cat: "進階" }, { en: "Analogy", zh: "類比", cat: "進階" }, { en: "Arbitrary", zh: "任意的/武斷的", cat: "進階" }, { en: "Aspect", zh: "面向", cat: "進階" }, { en: "Bias", zh: "偏見", cat: "進階" },
-        { en: "Coherent", zh: "連貫的", cat: "進階" }, { en: "Comprehensive", zh: "詳盡的/整體的", cat: "進階" }, { en: "Comprise", zh: "包含", cat: "進階" }, { en: "Conclude", zh: "結論", cat: "進階" }, { en: "Contradict", zh: "矛盾/反駁", cat: "進階" }, { en: "Crucial", zh: "至關重要的", cat: "進階" }, { en: "Currency", zh: "貨幣/通用", cat: "進階" }, { en: "Denote", zh: "表示", cat: "進階" }, { en: "Dimension", zh: "維度/尺寸", cat: "進階" }, { en: "Discrete", zh: "離散的/個別的", cat: "進階" },
-        { en: "Equivalent", zh: "等同的", cat: "進階" }, { en: "Establish", zh: "建立", cat: "進階" }, { en: "Ethical", zh: "倫理的", cat: "進階" }, { en: "Evidence", zh: "證據", cat: "進階" }, { en: "Exceed", zh: "超過", cat: "進階" }, { en: "Fluctuate", zh: "波動", cat: "進階" }, { en: "Fundamental", zh: "基礎的", cat: "進階" }, { en: "Guarantee", zh: "保證", cat: "進階" }, { en: "Hierarchical", zh: "分層的", cat: "進階" }, { en: "Implication", zh: "暗示/啟示", cat: "進階" },
-        { en: "Incentive", zh: "誘因/動機", cat: "進階" }, { en: "Inevitable", zh: "不可避免的", cat: "進階" }, { en: "Inherent", zh: "固有的", cat: "進階" }, { en: "Interpret", zh: "詮釋/口譯", cat: "進階" }, { en: "Justify", zh: "證明...正當", cat: "進階" }, { en: "Liberal", zh: "自由的/大方的", cat: "進階" }, { en: "Objective", zh: "客觀的/目標", cat: "進階" }, { en: "Paradigm", zh: "範式/典型", cat: "進階" }, { en: "Perspective", zh: "觀點/透視", cat: "進階" }, { en: "Qualitative", zh: "定性的/質化的", cat: "進階" }
-    ];
-
-    let vocabs = JSON.parse(localStorage.getItem('vocab_v5')) || library;
+    let vocabs = JSON.parse(localStorage.getItem('vocab_quiz_v1')) || library;
     let currentFilter = '全部';
 
     function render() {
@@ -112,15 +139,75 @@
                     <div class="text-xl font-bold text-slate-800 tracking-tight">${item.en}</div>
                     <div class="zh-text text-indigo-600 font-semibold text-base">${item.zh}</div>
                 </div>
-                <div class="flex gap-3 ml-4">
-                    <button onclick="speak('${item.en}')" class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl shadow-inner active:bg-slate-200">🔊</button>
-                    <button onclick="removeWord(${vocabs.indexOf(item)})" class="w-12 h-12 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center text-xl active:bg-red-100">🗑️</button>
+                <div class="flex gap-2">
+                    <button onclick="speak('${item.en}')" class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center">🔊</button>
+                    <button onclick="removeWord(${vocabs.indexOf(item)})" class="w-10 h-10 rounded-xl bg-red-50 text-red-400 flex items-center justify-center">🗑️</button>
                 </div>
             `;
             list.appendChild(card);
         });
-        localStorage.setItem('vocab_v5', JSON.stringify(vocabs));
+        localStorage.setItem('vocab_quiz_v1', JSON.stringify(vocabs));
     }
+
+    // Quiz Logic
+    let currentCorrect = null;
+
+    function startQuiz() {
+        const filtered = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
+        if (filtered.length < 4) return alert("單字量不足（至少需要 4 個才能測驗）");
+
+        document.getElementById('quiz-modal').style.display = 'flex';
+        nextQuestion(filtered);
+    }
+
+    function nextQuestion(pool) {
+        document.getElementById('quiz-feedback').innerText = '';
+        const randomWord = pool[Math.floor(Math.random() * pool.length)];
+        currentCorrect = randomWord.en;
+        document.getElementById('quiz-q').innerText = randomWord.zh;
+
+        // 生成選項
+        let options = [randomWord.en];
+        while (options.length < 4) {
+            let r = pool[Math.floor(Math.random() * pool.length)].en;
+            if (!options.includes(r)) options.push(r);
+        }
+        options.sort(() => Math.random() - 0.5);
+
+        const container = document.getElementById('quiz-options');
+        container.innerHTML = '';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = "option-btn w-full p-4 rounded-2xl bg-slate-50 text-slate-700 font-bold border-2 border-transparent transition-all";
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(btn, opt, pool);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(btn, opt, pool) {
+        const feedback = document.getElementById('quiz-feedback');
+        if (opt === currentCorrect) {
+            btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+            feedback.innerText = "✨ Correct!";
+            feedback.className = "mt-6 font-bold text-emerald-500";
+            setTimeout(() => nextQuestion(pool), 1500);
+        } else {
+            btn.classList.add('border-red-500', 'bg-red-50', 'text-red-700');
+            feedback.innerText = "❌ Try Again";
+            feedback.className = "mt-6 font-bold text-red-500";
+        }
+    }
+
+    function closeQuiz() { document.getElementById('quiz-modal').style.display = 'none'; }
+    window.setFilter = (cat) => {
+        currentFilter = cat;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            const isActive = b.innerText.includes(cat);
+            b.className = `tab-btn px-6 py-3 rounded-2xl text-sm font-bold transition-all ${isActive ? 'bg-white text-indigo-600 shadow-lg active' : 'bg-white/80 text-slate-500 shadow-sm'}`;
+        });
+        render();
+    };
 
     document.getElementById('add-btn').onclick = () => {
         const en = document.getElementById('en-input').value;
@@ -132,15 +219,6 @@
             document.getElementById('zh-input').value = '';
             render();
         }
-    };
-
-    window.setFilter = (cat) => {
-        currentFilter = cat;
-        document.querySelectorAll('.tab-btn').forEach(b => {
-            const isActive = b.innerText.includes(cat);
-            b.className = `tab-btn px-6 py-3 rounded-2xl text-sm font-bold transition-all ${isActive ? 'bg-white text-indigo-600 shadow-lg border border-indigo-50 active' : 'bg-white/80 text-slate-500 shadow-sm'}`;
-        });
-        render();
     };
 
     window.shuffle = () => { vocabs.sort(() => Math.random() - 0.5); render(); };
