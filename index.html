@@ -229,8 +229,14 @@ const library = [
     { en: "mass-produced", zh: "大量生產", cat: "課堂2" }
 ];
 
+    // ... 你的 library 陣列保持不變 ...
+
     let vocabs = JSON.parse(localStorage.getItem('vocab_quiz_v1')) || library;
     let currentFilter = '全部';
+    
+    // --- 新增：測驗狀態管理 ---
+    let quizQueue = []; 
+    let currentCorrectItem = null;
 
     function render() {
         const list = document.getElementById('vocab-list');
@@ -257,25 +263,42 @@ const library = [
         localStorage.setItem('vocab_quiz_v1', JSON.stringify(vocabs));
     }
 
-    // Quiz Logic
-    let currentCorrect = null;
-
+    // --- 優化後的 Quiz Logic ---
     function startQuiz() {
-        const filtered = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
-        if (filtered.length < 4) return alert("單字量不足（至少需要 4 個才能測驗）");
+        const pool = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
+        if (pool.length < 4) return alert("單字量不足（至少需要 4 個才能測驗）");
 
+        // 初始化這一輪的測驗隊列（複製一份並打亂）
+        quizQueue = [...pool].sort(() => Math.random() - 0.5);
+        
         document.getElementById('quiz-modal').style.display = 'flex';
-        nextQuestion(filtered);
+        nextQuestion();
     }
 
-    function nextQuestion(pool) {
-        document.getElementById('quiz-feedback').innerText = '';
-        const randomWord = pool[Math.floor(Math.random() * pool.length)];
-        currentCorrect = randomWord.en;
-        document.getElementById('quiz-q').innerText = randomWord.zh;
+    function nextQuestion() {
+        const feedback = document.getElementById('quiz-feedback');
+        const pool = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
 
-        // 生成選項
-        let options = [randomWord.en];
+        // 如果這一輪考完了，重新開始新的一輪
+        if (quizQueue.length === 0) {
+            feedback.innerText = "🎉 這一輪考完囉！即將開始新的一輪";
+            feedback.className = "mt-6 font-bold text-indigo-500";
+            setTimeout(() => {
+                quizQueue = [...pool].sort(() => Math.random() - 0.5);
+                nextQuestion();
+            }, 2000);
+            return;
+        }
+
+        feedback.innerText = `剩餘題數: ${quizQueue.length}`;
+        feedback.className = "mt-6 text-xs text-slate-400";
+
+        // 從隊列中取出第一個單字（確保不重複）
+        currentCorrectItem = quizQueue.shift();
+        document.getElementById('quiz-q').innerText = currentCorrectItem.zh;
+
+        // 生成選項（從原始 pool 找錯誤選項）
+        let options = [currentCorrectItem.en];
         while (options.length < 4) {
             let r = pool[Math.floor(Math.random() * pool.length)].en;
             if (!options.includes(r)) options.push(r);
@@ -288,18 +311,19 @@ const library = [
             const btn = document.createElement('button');
             btn.className = "option-btn w-full p-4 rounded-2xl bg-slate-50 text-slate-700 font-bold border-2 border-transparent transition-all";
             btn.innerText = opt;
-            btn.onclick = () => checkAnswer(btn, opt, pool);
+            btn.onclick = () => checkAnswer(btn, opt);
             container.appendChild(btn);
         });
     }
 
-    function checkAnswer(btn, opt, pool) {
+    function checkAnswer(btn, opt) {
         const feedback = document.getElementById('quiz-feedback');
-        if (opt === currentCorrect) {
+        if (opt === currentCorrectItem.en) {
             btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
             feedback.innerText = "✨ Correct!";
             feedback.className = "mt-6 font-bold text-emerald-500";
-            setTimeout(() => nextQuestion(pool), 1500);
+            // 答對了，1秒後進入下一題
+            setTimeout(() => nextQuestion(), 1000);
         } else {
             btn.classList.add('border-red-500', 'bg-red-50', 'text-red-700');
             feedback.innerText = "❌ Try Again";
@@ -307,7 +331,14 @@ const library = [
         }
     }
 
-    function closeQuiz() { document.getElementById('quiz-modal').style.display = 'none'; }
+    function closeQuiz() { 
+        document.getElementById('quiz-modal').style.display = 'none'; 
+        quizQueue = []; // 關閉時清空隊列
+    }
+
+    // ... 其餘的 Helper Functions (setFilter, add-btn, shuffle, removeWord, resetData, speak) 保持不變 ...
+    
+    // 以下為了完整性保留其餘函式
     window.setFilter = (cat) => {
         currentFilter = cat;
         document.querySelectorAll('.tab-btn').forEach(b => {
@@ -340,5 +371,6 @@ const library = [
 
     render();
 </script>
+
 </body>
 </html>
