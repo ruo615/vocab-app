@@ -336,17 +336,26 @@ const library = [
         quizQueue = []; // 關閉時清空隊列
     }
 
-    // ... 其餘的 Helper Functions (setFilter, add-btn, shuffle, removeWord, resetData, speak) 保持不變 ...
-    
-    // 以下為了完整性保留其餘函式
+    // ... 其餘的 Helper Functions (setFilter, add-btn, shuffle, removeWord, resetData, speak) 
     window.setFilter = (cat) => {
-        currentFilter = cat;
-        document.querySelectorAll('.tab-btn').forEach(b => {
-            const isActive = b.innerText.includes(cat);
-            b.className = `tab-btn px-6 py-3 rounded-2xl text-sm font-bold transition-all ${isActive ? 'bg-white text-indigo-600 shadow-lg active' : 'bg-white/80 text-slate-500 shadow-sm'}`;
-        });
-        render();
-    };
+    currentFilter = cat;
+    
+    // 取得所有的按鈕
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        // 修改這裡：改用參數與按鈕文字「完全相等」來判斷
+        // 或者更嚴謹一點，檢查按鈕點擊時傳入的那個值
+        const buttonText = b.innerText.trim();
+        const isActive = (buttonText === cat);
+        
+        if (isActive) {
+            b.className = "tab-btn active bg-white text-indigo-600 shadow-lg px-6 py-3 rounded-2xl text-sm font-bold transition-all border border-indigo-50";
+        } else {
+            b.className = "tab-btn bg-white/80 text-slate-500 shadow-sm px-6 py-3 rounded-2xl text-sm font-bold transition-all";
+        }
+    });
+    render();
+};
+
 
     document.getElementById('add-btn').onclick = () => {
         const en = document.getElementById('en-input').value;
