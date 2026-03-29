@@ -7,359 +7,319 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; -webkit-tap-highlight-color: transparent; }
         .safe-top { padding-top: env(safe-area-inset-top); }
         .glass-header { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
-        .word-card { border-left: 4px solid #6366f1; transition: transform 0.1s; }
+        .word-card { border-left: 4px solid #6366f1; transition: all 0.2s; }
         .zh-text { max-height: 0; overflow: hidden; transition: all 0.3s ease; opacity: 0; }
         .zh-text.show { max-height: 100px; opacity: 1; margin-top: 8px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* 測驗彈窗樣式 */
-        #quiz-modal { display: none; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
-        .option-btn:active { transform: scale(0.95); }
+        #quiz-modal { display: none; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); }
+        .option-btn:active { transform: scale(0.98); }
+        .tab-btn.active { background: white; color: #6366f1; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.1); }
     </style>
 </head>
-<body class="pb-24">
+<body class="pb-32">
 
-    <div class="glass-header safe-top pb-8 px-6 text-white shadow-2xl rounded-b-[40px]">
-        <div class="pt-8">
-            <h1 class="text-2xl font-extrabold tracking-tight">Vocab Master</h1>
-            <p class="text-white/70 text-xs">智能測驗口袋書</p>
+    <!-- Header -->
+    <div class="glass-header safe-top pb-10 px-6 text-white shadow-2xl rounded-b-[50px]">
+        <div class="pt-8 flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight">Vocab Master</h1>
+                <p class="text-white/70 text-xs">智能測驗口袋書 v2.0</p>
+            </div>
+            <button onclick="resetData()" class="p-2 bg-white/10 rounded-full text-[10px] font-bold">RESET</button>
         </div>
         <div class="mt-8 flex justify-between items-end">
             <div>
-                <span class="text-5xl font-extrabold" id="count">0</span>
+                <span class="text-6xl font-extrabold" id="count">0</span>
                 <span class="text-sm font-semibold opacity-80 ml-1">WORDS</span>
             </div>
-            <button onclick="shuffle()" class="bg-white/20 hover:bg-white/30 backdrop-blur-lg px-5 py-2.5 rounded-2xl text-sm font-bold transition-all">
+            <button onclick="shuffle()" class="bg-white/20 hover:bg-white/30 backdrop-blur-lg px-6 py-3 rounded-2xl text-sm font-bold transition-all flex items-center gap-2">
                 🔀 隨機亂序
             </button>
         </div>
     </div>
 
-    <div class="flex gap-3 px-6 -mt-5 overflow-x-auto no-scrollbar relative z-10">
-        <button onclick="setFilter('全部')" class="tab-btn active bg-white text-indigo-600 shadow-lg px-6 py-3 rounded-2xl text-sm font-bold transition-all border border-indigo-50">全部</button>
-        <button onclick="setFilter('課堂')" class="tab-btn bg-white/80 text-slate-500 shadow-sm px-6 py-3 rounded-2xl text-sm font-bold transition-all">課堂</button>
-        <button onclick="setFilter('課堂2')" class="tab-btn bg-white/80 text-slate-500 shadow-sm px-6 py-3 rounded-2xl text-sm font-bold transition-all">課堂2</button>
+    <!-- Tabs -->
+    <div class="flex gap-3 px-6 -mt-6 overflow-x-auto no-scrollbar relative z-10">
+        <button onclick="setFilter('全部')" class="tab-btn active px-8 py-4 rounded-2xl text-sm font-bold transition-all whitespace-nowrap bg-white/80 text-slate-500 shadow-sm">全部</button>
+        <button onclick="setFilter('課堂')" class="tab-btn px-8 py-4 rounded-2xl text-sm font-bold transition-all whitespace-nowrap bg-white/80 text-slate-500 shadow-sm">課堂</button>
+        <button onclick="setFilter('課堂2')" class="tab-btn px-8 py-4 rounded-2xl text-sm font-bold transition-all whitespace-nowrap bg-white/80 text-slate-500 shadow-sm">課堂2</button>
+        <button onclick="setFilter('課堂3')" class="tab-btn px-8 py-4 rounded-2xl text-sm font-bold transition-all whitespace-nowrap bg-white/80 text-slate-500 shadow-sm">課堂3</button>
     </div>
 
-    <div class="px-6 mt-8">
-        <div class="bg-white p-6 rounded-[30px] shadow-sm border border-slate-100">
+    <!-- Input Area -->
+    <div class="px-6 mt-10">
+        <div class="bg-white p-6 rounded-[35px] shadow-sm border border-slate-100">
             <div class="grid grid-cols-1 gap-3">
                 <input type="text" id="en-input" placeholder="English Word" class="w-full p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-400 outline-none font-semibold">
                 <input type="text" id="zh-input" placeholder="中文翻譯" class="w-full p-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-400 outline-none font-semibold">
                 <div class="flex gap-3">
                     <select id="cat-input" class="bg-slate-50 rounded-2xl px-4 text-slate-500 font-bold text-sm outline-none">
                         <option value="課堂">課堂</option>
-                        <option value="多益">多益</option>
-                        <option value="生活">生活</option>
+                        <option value="課堂2">課堂2</option>
+                        <option value="課堂3">課堂3</option>
                     </select>
                     <button id="add-btn" class="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 active:bg-indigo-700 transition-all">
-                        ＋ 新增
+                        ＋ 新增單字
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Word List -->
     <div id="vocab-list" class="px-6 mt-8 space-y-4"></div>
 
-    <div class="fixed bottom-6 left-0 right-0 px-6 flex gap-3">
-        <button onclick="startQuiz()" class="flex-1 bg-purple-600 text-white font-black py-5 rounded-3xl shadow-xl shadow-purple-200 flex items-center justify-center gap-2">
-            📝 開始測驗
-        </button>
-        <button onclick="resetData()" class="px-6 bg-white text-slate-400 font-bold rounded-3xl border border-slate-100 shadow-sm text-xs">
-            RESET
+    <!-- Floating Start Button -->
+    <div class="fixed bottom-8 left-0 right-0 px-8 z-40">
+        <button onclick="startQuiz()" class="w-full bg-slate-900 text-white font-black py-6 rounded-[30px] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform">
+            <span class="text-xl">📝</span> 開始測驗模式
         </button>
     </div>
 
+    <!-- Quiz Modal -->
     <div id="quiz-modal" class="fixed inset-0 z-50 flex items-center justify-center px-6">
-        <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl relative">
-            <button onclick="closeQuiz()" class="absolute top-6 right-6 text-slate-300 text-xl">✕</button>
+        <div class="bg-white w-full max-w-md rounded-[45px] p-10 shadow-2xl relative">
+            <button onclick="closeQuiz()" class="absolute top-8 right-8 text-slate-300 hover:text-slate-500 text-2xl transition-colors">✕</button>
             <div class="text-center">
-                <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-2 block">QUIZ MODE</span>
-                <h2 id="quiz-q" class="text-3xl font-black text-slate-800 mb-8">Word?</h2>
-                <div id="quiz-options" class="space-y-3">
-                    </div>
-                <div id="quiz-feedback" class="mt-6 font-bold h-6"></div>
+                <span id="quiz-progress" class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4 block">LEVEL 1 • PROGRESS</span>
+                <h2 id="quiz-q" class="text-4xl font-black text-slate-800 mb-10">Word?</h2>
+                <div id="quiz-options" class="grid grid-cols-1 gap-4">
+                    <!-- Options injected here -->
+                </div>
+                <div id="quiz-feedback" class="mt-8 font-extrabold h-8 text-lg"></div>
             </div>
         </div>
     </div>
 
 <script>
+// 單字資料庫
 const library = [
-    // --- 照片手寫單字開始 ---
     { en: "pandemic", zh: "流行病", cat: "課堂" },
-    { en: "cluster", zh: "同類物聚集的", cat: "課堂" },
+    { en: "cluster", zh: "聚集", cat: "課堂" },
     { en: "viral", zh: "病毒的", cat: "課堂" },
     { en: "pneumonia", zh: "肺炎", cat: "課堂" },
-    { en: "symptoms", zh: "併發症", cat: "課堂" },
+    { en: "symptoms", zh: "症狀/併發症", cat: "課堂" },
     { en: "fatigue", zh: "疲勞", cat: "課堂" },
     { en: "nasal congestion", zh: "鼻塞", cat: "課堂" },
     { en: "conjunctivitis", zh: "結膜炎", cat: "課堂" },
-    { en: "joint", zh: "關鍵", cat: "課堂" },
+    { en: "joint", zh: "關鍵/關節", cat: "課堂" },
     { en: "diarrhea", zh: "腹瀉", cat: "課堂" },
     { en: "rash", zh: "皮疹", cat: "課堂" },
-    { en: "dizziness", zh: "暈", cat: "課堂" },
+    { en: "dizziness", zh: "頭暈", cat: "課堂" },
     { en: "nausea", zh: "作嘔", cat: "課堂" },
     { en: "constantly", zh: "不斷地", cat: "課堂" },
     { en: "mutation", zh: "突變", cat: "課堂" },
     { en: "variant", zh: "變種", cat: "課堂" },
-    { en: "emerge", zh: "出現", cat: "課堂" },
-    { en: "designated", zh: "指定", cat: "課堂" },
-    { en: "concern by", zh: "關注", cat: "課堂" },
+    { en: "emerge", zh: "出現/浮現", cat: "課堂" },
+    { en: "designated", zh: "指定的", cat: "課堂" },
+    { en: "concern by", zh: "關注/由...擔憂", cat: "課堂" },
     { en: "transmissible", zh: "可傳染的", cat: "課堂" },
-    { en: "claimed", zh: "主張", cat: "課堂" },
+    { en: "claimed", zh: "主張/聲稱", cat: "課堂" },
     { en: "patient", zh: "病人", cat: "課堂" },
-    { en: "beyond", zh: "超過", cat: "課堂" },
-    { en: "proportion", zh: "部分", cat: "課堂" },
+    { en: "beyond", zh: "超過/在...之外", cat: "課堂" },
+    { en: "proportion", zh: "部分/比例", cat: "課堂" },
     { en: "occur", zh: "發生", cat: "課堂" },
     { en: "severe", zh: "嚴重", cat: "課堂" },
     { en: "appetite", zh: "食慾", cat: "課堂" },
-    { en: "confusion", zh: "錯亂", cat: "課堂" },
-    { en: "persistent", zh: "一直的", cat: "課堂" },
+    { en: "confusion", zh: "錯亂/混淆", cat: "課堂" },
+    { en: "persistent", zh: "持續的/一直的", cat: "課堂" },
     { en: "irritability", zh: "易怒", cat: "課堂" },
     { en: "consciousness", zh: "意識", cat: "課堂" },
     { en: "anxiety", zh: "焦慮", cat: "課堂" },
-    { en: "depression", zh: "沮喪", cat: "課堂" },
-    { en: "disorder", zh: "亂", cat: "課堂" },
+    { en: "depression", zh: "沮喪/憂鬱", cat: "課堂" },
+    { en: "disorder", zh: "失調/混亂", cat: "課堂" },
     { en: "neurological", zh: "神經系統的", cat: "課堂" },
-    { en: "complications", zh: "併發病", cat: "課堂" },
+    { en: "complications", zh: "併發症", cat: "課堂" },
     { en: "strokes", zh: "中風", cat: "課堂" },
-    { en: "inflammation", zh: "炎症", cat: "課堂" },
+    { en: "inflammation", zh: "發炎", cat: "課堂" },
     { en: "precaution", zh: "預防", cat: "課堂" },
-    { en: "ventilated", zh: "通風", cat: "課堂" },
+    { en: "ventilated", zh: "通風的", cat: "課堂" },
     { en: "molecular", zh: "分子", cat: "課堂" },
     { en: "confirm infection", zh: "確診", cat: "課堂" },
     { en: "swab", zh: "棉花棒", cat: "課堂" },
     { en: "amplifying", zh: "放大", cat: "課堂" },
-    { en: "exposure", zh: "接觸", cat: "課堂" },
+    { en: "exposure", zh: "暴露/接觸", cat: "課堂" },
     { en: "antigen", zh: "抗原", cat: "課堂" },
-    { en: "rapid", zh: "迅速的 (antigen test)", cat: "課堂" },
-    { en: "alternative", zh: "選擇", cat: "課堂" },
+    { en: "rapid", zh: "迅速的", cat: "課堂" },
+    { en: "alternative", zh: "替代方案/選擇", cat: "課堂" },
     { en: "protein", zh: "蛋白質", cat: "課堂" },
-    { en: "circulating", zh: "傳遞", cat: "課堂" },
+    { en: "circulating", zh: "傳遞/循環", cat: "課堂" },
     { en: "prevent", zh: "預防", cat: "課堂" },
     { en: "delirium", zh: "神智不清", cat: "課堂" },
     { en: "nerve", zh: "神經", cat: "課堂" },
-    { en: "associated with", zh: "聯繫", cat: "課堂" },
-    { en: "ill", zh: "患病的", cat: "課堂" },
-    { en: "oxygen", zh: "氧", cat: "課堂" },
-    { en: "critically", zh: "關鍵", cat: "課堂" },
-    { en: "intensive", zh: "密集的", cat: "課堂" },
-    { en: "respiratory", zh: "呼吸系統", cat: "課堂" },
-    { en: "acute", zh: "急性", cat: "課堂" },
-    { en: "sepsis", zh: "敗血症", cat: "課堂" },
-    { en: "septic", zh: "敗血症的", cat: "課堂" },
-    { en: "injury", zh: "受傷", cat: "課堂" },
-    { en: "underlying", zh: "潛在的", cat: "課堂" },
-    { en: "diabetes", zh: "糖尿病", cat: "課堂" },
-    { en: "obesity", zh: "肥胖", cat: "課堂" },
-    { en: "infected with", zh: "受感染", cat: "課堂" },
-    { en: "isolation", zh: "孤立 (like 確診者)", cat: "課堂" },
-    { en: "quarantine", zh: "隔離 (like 接觸者)", cat: "課堂" },
-    { en: "immune", zh: "免疫的", cat: "課堂" },
-    { en: "efficacy", zh: "效力", cat: "課堂" },
-    
-    { en: "electric", zh: "電子的", cat: "課堂2" },
+    { en: "associated with", zh: "聯繫/與...有關", cat: "課堂" },
+
+    { en: "electric", zh: "電子的/電力", cat: "課堂2" },
     { en: "battery", zh: "電池", cat: "課堂2" },
     { en: "storage", zh: "儲存", cat: "課堂2" },
-    { en: "grid", zh: "網格", cat: "課堂2" },
+    { en: "grid", zh: "網格/電網", cat: "課堂2" },
     { en: "scale", zh: "規模", cat: "課堂2" },
-    { en: "solar", zh: "太陽的", cat: "課堂2" },
-    { en: "tribute", zh: "敬意", cat: "課堂2" },
+    { en: "solar", zh: "太陽能的", cat: "課堂2" },
+    { en: "tribute", zh: "敬意/貢獻", cat: "課堂2" },
     { en: "formerly", zh: "以前", cat: "課堂2" },
-    { en: "chairman", zh: "總統 (主席)", cat: "課堂2" },
+    { en: "chairman", zh: "主席", cat: "課堂2" },
     { en: "current", zh: "目前的", cat: "課堂2" },
-    { en: "overarching", zh: "總而言之", cat: "課堂2" },
+    { en: "overarching", zh: "主要的/整體的", cat: "課堂2" },
     { en: "expedite", zh: "加快", cat: "課堂2" },
     { en: "hydrogen", zh: "氫", cat: "課堂2" },
-    { en: "affordably", zh: "價格實惠", cat: "課堂2" },
+    { en: "affordably", zh: "價格實惠地", cat: "課堂2" },
     { en: "high degree", zh: "高度", cat: "課堂2" },
     { en: "vertical integration", zh: "垂直整合", cat: "課堂2" },
-    { en: "component", zh: "零組件", cat: "課堂2" },
-    { en: "proprietary", zh: "產權的", cat: "課堂2" },
-    { en: "automotive industry", zh: "汽車行業", cat: "課堂2" },
+    { en: "component", zh: "組件", cat: "課堂2" },
+    { en: "proprietary", zh: "產權的/專利的", cat: "課堂2" },
     { en: "outsource", zh: "外包", cat: "課堂2" },
-    { en: "assembly", zh: "組合", cat: "課堂2" },
-    { en: "discreetly", zh: "慎重地 (adv.)", cat: "課堂2" },
-    { en: "launched", zh: "啟動", cat: "課堂2" },
+    { en: "assembly", zh: "組裝", cat: "課堂2" },
+    { en: "discreetly", zh: "慎重地", cat: "課堂2" },
+    { en: "launched", zh: "啟動/發布", cat: "課堂2" },
     { en: "destination", zh: "目的地", cat: "課堂2" },
-    { en: "free of charge", zh: "免費", cat: "課堂2" },
     { en: "contractor", zh: "承包商", cat: "課堂2" },
     { en: "navigation system", zh: "導航系統", cat: "課堂2" },
-    { en: "individual", zh: "個人", cat: "課堂2" },
-    { en: "cylindrical", zh: "圓柱", cat: "課堂2" },
+    { en: "individual", zh: "個人/個別的", cat: "課堂2" },
+    { en: "cylindrical", zh: "圓柱體的", cat: "課堂2" },
     { en: "autopilot", zh: "自動駕駛", cat: "課堂2" },
-    { en: "burdensome", zh: "有負擔的", cat: "課堂2" },
+    { en: "burdensome", zh: "沉重的/負擔的", cat: "課堂2" },
     { en: "capable", zh: "有能力的", cat: "課堂2" },
     { en: "supervision", zh: "監督", cat: "課堂2" },
-    { en: "autonomous", zh: "獨立自主的 (adv.)", cat: "課堂2" },
+    { en: "autonomous", zh: "自主的", cat: "課堂2" },
     { en: "sensor", zh: "感應器", cat: "課堂2" },
     { en: "ultrasonic", zh: "超聲波", cat: "課堂2" },
     { en: "radar", zh: "雷達", cat: "課堂2" },
-    { en: "predicate", zh: "斷言", cat: "課堂2" },
-    { en: "integrated", zh: "整合", cat: "課堂2" },
-    { en: "architecture", zh: "建築學", cat: "課堂2" },
-    { en: "indicate", zh: "表明", cat: "課堂2" },
+    { en: "integrated", zh: "整合的", cat: "課堂2" },
+    { en: "architecture", zh: "架構", cat: "課堂2" },
+    { en: "indicate", zh: "表明/指示", cat: "課堂2" },
     { en: "improvement", zh: "改進", cat: "課堂2" },
-    { en: "functionality", zh: "功能", cat: "課堂2" },
-    { en: "automaker", zh: "汽車製造商", cat: "課堂2" },
-    { en: "directly", zh: "直接地", cat: "課堂2" },
-    { en: "independently", zh: "獨立", cat: "課堂2" },
+    { en: "functionality", zh: "功能性", cat: "課堂2" },
     { en: "dealerships", zh: "經銷商", cat: "課堂2" },
     { en: "conflict of interest", zh: "利益衝突", cat: "課堂2" },
     { en: "rather than", zh: "而不是", cat: "課堂2" },
     { en: "proactive", zh: "主動的", cat: "課堂2" },
     { en: "diagnosis", zh: "診斷", cat: "課堂2" },
-    { en: "repair", zh: "修理", cat: "課堂2" },
     { en: "lithium-ion", zh: "鋰離子", cat: "課堂2" },
     { en: "commodity", zh: "商品", cat: "課堂2" },
-    { en: "feature", zh: "以...為特色(v.) 特色(n.)", cat: "課堂2" },
-    { en: "redundant", zh: "多餘的", cat: "課堂2" },
-    { en: "thermal", zh: "熱的", cat: "課堂2" },
-    { en: "intumescent", zh: "膨脹", cat: "課堂2" },
+    { en: "redundant", zh: "多餘的/備份的", cat: "課堂2" },
+    { en: "thermal", zh: "熱量的", cat: "課堂2" },
+    { en: "intumescent", zh: "膨脹的", cat: "課堂2" },
     { en: "interior", zh: "內部", cat: "課堂2" },
     { en: "trunk", zh: "後車廂", cat: "課堂2" },
-    { en: "debris", zh: "碎片", cat: "課堂2" },
-    { en: "armor plate", zh: "防護板", cat: "課堂2" },
-    { en: "counterpart", zh: "對應的人", cat: "課堂2" },
-    { en: "source", zh: "來源", cat: "課堂2" },
-    { en: "in-house", zh: "自行", cat: "課堂2" },
-    { en: "mass-produced", zh: "大量生產", cat: "課堂2" }
+    { en: "debris", zh: "碎片/殘骸", cat: "課堂2" },
+    { en: "armor plate", zh: "裝甲板", cat: "課堂2" },
+    { en: "counterpart", zh: "對應物", cat: "課堂2" },
+    { en: "in-house", zh: "自行生產的", cat: "課堂2" },
+    { en: "mass-produced", zh: "大量生產", cat: "課堂2" },
+
+    { en: "tablet", zh: "平板、藥片", cat: "課堂3" },
+    { en: "primarily", zh: "主要地", cat: "課堂3" },
+    { en: "touchscreen", zh: "觸控螢幕", cat: "課堂3" },
+    { en: "function", zh: "起...作用", cat: "課堂3" },
+    { en: "device", zh: "裝置", cat: "課堂3" },
+    { en: "desktop", zh: "桌機", cat: "課堂3" },
+    { en: "laptop", zh: "筆電", cat: "課堂3" },
+    { en: "hideable", zh: "可隱藏的", cat: "課堂3" },
+    { en: "virtual keyboard", zh: "虛擬鍵盤", cat: "課堂3" },
+    { en: "various", zh: "各式各樣", cat: "課堂3" },
+    { en: "convertible", zh: "可改變的", cat: "課堂3" },
+    { en: "swivel", zh: "轉動", cat: "課堂3" },
+    { en: "joint", zh: "接合處", cat: "課堂3" },
+    { en: "slide joint", zh: "滑動接頭", cat: "課堂3" },
+    { en: "hybrid", zh: "混合體", cat: "課堂3" },
+    { en: "detachable", zh: "可拆下的", cat: "課堂3" },
+    { en: "stand-alone", zh: "獨立", cat: "課堂3" },
+    { en: "booklet", zh: "書本式雙螢幕平板", cat: "課堂3" },
+    { en: "dual", zh: "雙重的", cat: "課堂3" },
+    { en: "variety", zh: "多樣化", cat: "課堂3" },
+    { en: "smartphone", zh: "智慧型手機", cat: "課堂3" },
+    { en: "differ", zh: "與...不同", cat: "課堂3" },
+    { en: "considerably", zh: "相當", cat: "課堂3" },
+    { en: "user interface (UI)", zh: "使用者介面", cat: "課堂3" },
+    { en: "operating system (OS)", zh: "作業系統", cat: "課堂3" },
+    { en: "processor", zh: "處理器", cat: "課堂3" },
+    { en: "application (app)", zh: "應用程式", cat: "課堂3" },
+    { en: "crucial", zh: "關鍵的", cat: "課堂3" },
+    { en: "media consumption", zh: "媒體內容的使用/觀看", cat: "課堂3" },
+    { en: "derived from", zh: "來自於", cat: "課堂3" },
+    { en: "architecture", zh: "架構", cat: "課堂3" },
+    { en: "disruptive", zh: "顛覆性的", cat: "課堂3" },
+    { en: "dramatically", zh: "劇烈地", cat: "課堂3" },
+    { en: "cannibalizing", zh: "市場侵蝕", cat: "課堂3" },
+    { en: "associated", zh: "相關的", cat: "課堂3" },
+    { en: "pen computing", zh: "手寫筆運算", cat: "課堂3" },
+    { en: "information display", zh: "資訊顯示", cat: "課堂3" },
+    { en: "telautograph", zh: "電報傳真機", cat: "課堂3" },
+    { en: "contemporary", zh: "現代", cat: "課堂3" },
+    { en: "appear", zh: "出現", cat: "課堂3" },
+    { en: "science fiction", zh: "科幻小說", cat: "課堂3" },
+    { en: "alternative", zh: "可替代", cat: "課堂3" },
+    { en: "coin", zh: "創造 (新詞)", cat: "課堂3" },
+    { en: "feature", zh: "以...為特色", cat: "課堂3" },
+    { en: "term", zh: "把...稱為", cat: "課堂3" },
+    { en: "announce", zh: "宣佈", cat: "課堂3" },
+    { en: "WebPAD", zh: "網頁平板", cat: "課堂3" },
+    { en: "re-branded", zh: "重塑形象", cat: "課堂3" },
+    { en: "field work", zh: "實地考察", cat: "課堂3" },
+    { en: "usability", zh: "可用性", cat: "課堂3" },
+    { en: "release", zh: "發布", cat: "課堂3" },
+    { en: "battery life", zh: "電池續航力", cat: "課堂3" },
+    { en: "simplicity", zh: "簡單", cat: "課堂3" },
+    { en: "with respect to", zh: "關於", cat: "課堂3" },
+    { en: "perceive", zh: "認為/察覺", cat: "課堂3" },
+    { en: "shape", zh: "形狀", cat: "課堂3" },
+    { en: "debut", zh: "亮相/首演", cat: "課堂3" },
+    { en: "popularize", zh: "使普及", cat: "課堂3" },
+    { en: "mainstream", zh: "主流", cat: "課堂3" },
+    { en: "multi-touch", zh: "多點觸控", cat: "課堂3" },
+    { en: "solid-state storage drive", zh: "固態硬碟 (SSD)", cat: "課堂3" },
+    { en: "telephony", zh: "電話通訊", cat: "課堂3" },
+    { en: "bluetooth", zh: "藍牙", cat: "課堂3" }
 ];
 
-    // ... 你的 library 陣列保持不變 ...
-
-    let vocabs = JSON.parse(localStorage.getItem('vocab_quiz_v1')) || library;
+    // 狀態管理
+    let vocabs = JSON.parse(localStorage.getItem('vocab_quiz_v2')) || library;
     let currentFilter = '全部';
-    
-    // --- 新增：測驗狀態管理 ---
     let quizQueue = []; 
     let currentCorrectItem = null;
 
+    // 渲染列表
     function render() {
         const list = document.getElementById('vocab-list');
         list.innerHTML = '';
         const filtered = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
         document.getElementById('count').innerText = filtered.length;
 
-        filtered.forEach((item, i) => {
+        filtered.forEach((item) => {
             const card = document.createElement('div');
-            card.className = "word-card bg-white p-6 rounded-3xl shadow-sm flex items-center justify-between";
+            card.className = "word-card bg-white p-6 rounded-[30px] shadow-sm flex items-center justify-between";
             card.innerHTML = `
                 <div class="flex-1" onclick="this.querySelector('.zh-text').classList.toggle('show')">
-                    <span class="text-[9px] font-extrabold text-indigo-400 uppercase tracking-widest">${item.cat}</span>
+                    <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">${item.cat}</span>
                     <div class="text-xl font-bold text-slate-800 tracking-tight">${item.en}</div>
-                    <div class="zh-text text-indigo-600 font-semibold text-base">${item.zh}</div>
+                    <div class="zh-text text-indigo-600 font-bold text-base">${item.zh}</div>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="speak('${item.en}')" class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center">🔊</button>
-                    <button onclick="removeWord(${vocabs.indexOf(item)})" class="w-10 h-10 rounded-xl bg-red-50 text-red-400 flex items-center justify-center">🗑️</button>
+                    <button onclick="speak('${item.en}')" class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl">🔊</button>
+                    <button onclick="deleteWord('${item.en}')" class="w-12 h-12 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center">🗑️</button>
                 </div>
             `;
             list.appendChild(card);
         });
-        localStorage.setItem('vocab_quiz_v1', JSON.stringify(vocabs));
+        localStorage.setItem('vocab_quiz_v2', JSON.stringify(vocabs));
     }
 
-    // --- 優化後的 Quiz Logic ---
-    function startQuiz() {
-        const pool = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
-        if (pool.length < 4) return alert("單字量不足（至少需要 4 個才能測驗）");
-
-        // 初始化這一輪的測驗隊列（複製一份並打亂）
-        quizQueue = [...pool].sort(() => Math.random() - 0.5);
-        
-        document.getElementById('quiz-modal').style.display = 'flex';
-        nextQuestion();
-    }
-
-    function nextQuestion() {
-        const feedback = document.getElementById('quiz-feedback');
-        const pool = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
-
-        // 如果這一輪考完了，重新開始新的一輪
-        if (quizQueue.length === 0) {
-            feedback.innerText = "🎉 這一輪考完囉！即將開始新的一輪";
-            feedback.className = "mt-6 font-bold text-indigo-500";
-            setTimeout(() => {
-                quizQueue = [...pool].sort(() => Math.random() - 0.5);
-                nextQuestion();
-            }, 2000);
-            return;
-        }
-
-        feedback.innerText = `剩餘題數: ${quizQueue.length}`;
-        feedback.className = "mt-6 text-xs text-slate-400";
-
-        // 從隊列中取出第一個單字（確保不重複）
-        currentCorrectItem = quizQueue.shift();
-        document.getElementById('quiz-q').innerText = currentCorrectItem.zh;
-
-        // 生成選項（從原始 pool 找錯誤選項）
-        let options = [currentCorrectItem.en];
-        while (options.length < 4) {
-            let r = pool[Math.floor(Math.random() * pool.length)].en;
-            if (!options.includes(r)) options.push(r);
-        }
-        options.sort(() => Math.random() - 0.5);
-
-        const container = document.getElementById('quiz-options');
-        container.innerHTML = '';
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = "option-btn w-full p-4 rounded-2xl bg-slate-50 text-slate-700 font-bold border-2 border-transparent transition-all";
-            btn.innerText = opt;
-            btn.onclick = () => checkAnswer(btn, opt);
-            container.appendChild(btn);
-        });
-    }
-
-    function checkAnswer(btn, opt) {
-        const feedback = document.getElementById('quiz-feedback');
-        if (opt === currentCorrectItem.en) {
-            btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
-            feedback.innerText = "✨ Correct!";
-            feedback.className = "mt-6 font-bold text-emerald-500";
-            // 答對了，1秒後進入下一題
-            setTimeout(() => nextQuestion(), 1000);
-        } else {
-            btn.classList.add('border-red-500', 'bg-red-50', 'text-red-700');
-            feedback.innerText = "❌ Try Again";
-            feedback.className = "mt-6 font-bold text-red-500";
-        }
-    }
-
-    function closeQuiz() { 
-        document.getElementById('quiz-modal').style.display = 'none'; 
-        quizQueue = []; // 關閉時清空隊列
-    }
-
-    // ... 其餘的 Helper Functions (setFilter, add-btn, shuffle, removeWord, resetData, speak) 
+    // 篩選功能
     window.setFilter = (cat) => {
-    currentFilter = cat;
-    
-    // 取得所有的按鈕
-    document.querySelectorAll('.tab-btn').forEach(b => {
-        // 修改這裡：改用參數與按鈕文字「完全相等」來判斷
-        // 或者更嚴謹一點，檢查按鈕點擊時傳入的那個值
-        const buttonText = b.innerText.trim();
-        const isActive = (buttonText === cat);
-        
-        if (isActive) {
-            b.className = "tab-btn active bg-white text-indigo-600 shadow-lg px-6 py-3 rounded-2xl text-sm font-bold transition-all border border-indigo-50";
-        } else {
-            b.className = "tab-btn bg-white/80 text-slate-500 shadow-sm px-6 py-3 rounded-2xl text-sm font-bold transition-all";
-        }
-    });
-    render();
-};
+        currentFilter = cat;
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText === cat);
+        });
+        render();
+    };
 
-
+    // 新增單字
     document.getElementById('add-btn').onclick = () => {
-        const en = document.getElementById('en-input').value;
-        const zh = document.getElementById('zh-input').value;
+        const en = document.getElementById('en-input').value.trim();
+        const zh = document.getElementById('zh-input').value.trim();
         const cat = document.getElementById('cat-input').value;
         if(en && zh) {
             vocabs.unshift({en, zh, cat});
@@ -369,15 +329,102 @@ const library = [
         }
     };
 
-    window.shuffle = () => { vocabs.sort(() => Math.random() - 0.5); render(); };
-    window.removeWord = (i) => { vocabs.splice(i, 1); render(); };
-    window.resetData = () => { if(confirm("還原預設資料庫？")) { vocabs = [...library]; render(); } };
-    window.speak = (t) => {
-        const m = new SpeechSynthesisUtterance(t);
-        m.lang = 'en-US';
-        speechSynthesis.speak(m);
+    // 測驗邏輯
+    function startQuiz() {
+        const pool = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
+        if (pool.length < 4) return alert("單字量不足（至少需要 4 個才能開始測驗）");
+
+        quizQueue = [...pool].sort(() => Math.random() - 0.5);
+        document.getElementById('quiz-modal').style.display = 'flex';
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        const feedback = document.getElementById('quiz-feedback');
+        const pool = currentFilter === '全部' ? vocabs : vocabs.filter(v => v.cat === currentFilter);
+
+        if (quizQueue.length === 0) {
+            feedback.innerText = "🎉 恭喜！這輪測驗已完成！";
+            feedback.className = "mt-8 font-black text-indigo-500 text-lg";
+            setTimeout(() => closeQuiz(), 2000);
+            return;
+        }
+
+        feedback.innerText = `⏳ 剩餘題數: ${quizQueue.length}`;
+        feedback.className = "mt-8 text-sm text-slate-400 font-bold";
+
+        currentCorrectItem = quizQueue.shift();
+        document.getElementById('quiz-q').innerText = currentCorrectItem.zh;
+        document.getElementById('quiz-progress').innerText = `Progress: ${quizQueue.length} left`;
+
+        // 產生選項
+        let options = [currentCorrectItem.en];
+        while (options.length < 4) {
+            let randomWord = pool[Math.floor(Math.random() * pool.length)].en;
+            if (!options.includes(randomWord)) options.push(randomWord);
+        }
+        options.sort(() => Math.random() - 0.5);
+
+        const container = document.getElementById('quiz-options');
+        container.innerHTML = '';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = "option-btn w-full p-5 rounded-[25px] bg-slate-50 text-slate-700 font-extrabold border-2 border-transparent transition-all hover:bg-slate-100";
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(btn, opt);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(btn, opt) {
+        const feedback = document.getElementById('quiz-feedback');
+        const allBtns = document.querySelectorAll('.option-btn');
+        
+        if (opt === currentCorrectItem.en) {
+            btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+            feedback.innerText = "✨ 太棒了！答對了";
+            feedback.className = "mt-8 font-black text-emerald-500 text-lg";
+            allBtns.forEach(b => b.onclick = null); // 防止連續點擊
+            setTimeout(nextQuestion, 1000);
+        } else {
+            btn.classList.add('border-red-500', 'bg-red-50', 'text-red-700');
+            feedback.innerText = "❌ 再試一次！";
+            feedback.className = "mt-8 font-black text-red-500 text-lg";
+        }
+    }
+
+    function closeQuiz() { 
+        document.getElementById('quiz-modal').style.display = 'none'; 
+        quizQueue = [];
+    }
+
+    // 工具函數
+    window.shuffle = () => {
+        vocabs.sort(() => Math.random() - 0.5);
+        render();
     };
 
+    window.deleteWord = (en) => {
+        vocabs = vocabs.filter(v => v.en !== en);
+        render();
+    };
+
+    window.resetData = () => {
+        if(confirm("確定要重置資料庫並恢復預設單字嗎？")) {
+            vocabs = [...library];
+            render();
+        }
+    };
+
+    window.speak = (text) => {
+        window.speechSynthesis.cancel(); // 先取消之前的語音
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'en-US';
+        msg.rate = 0.9;
+        window.speechSynthesis.speak(msg);
+    };
+
+    // 初始化
     render();
 </script>
 
