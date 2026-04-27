@@ -442,29 +442,50 @@ function nextQuestion() {
     feedback.className = "mt-6 text-xs text-slate-400";
 
     currentCorrectItem = quizQueue.shift();
-    document.getElementById('quiz-q').innerText = currentCorrectItem.zh;
-
-    let options = [currentCorrectItem.en];
-    while (options.length < 4) {
-        let r = pool[Math.floor(Math.random() * pool.length)].en;
-        if (!options.includes(r)) options.push(r);
+    
+    // --- 關鍵修改：隨機決定模式 (50% 機率中選英，50% 英選中) ---
+    const isEnglishQuestion = Math.random() > 0.5;
+    
+    if (isEnglishQuestion) {
+        // 模式 A：給英文，選中文
+        document.getElementById('quiz-q').innerText = currentCorrectItem.en;
+        let options = [currentCorrectItem.zh];
+        while (options.length < 4) {
+            let r = pool[Math.floor(Math.random() * pool.length)].zh;
+            if (!options.includes(r)) options.push(r);
+        }
+        options.sort(() => Math.random() - 0.5);
+        renderOptions(options, currentCorrectItem.zh);
+    } else {
+        // 模式 B：給中文，選英文 (原本的模式)
+        document.getElementById('quiz-q').innerText = currentCorrectItem.zh;
+        let options = [currentCorrectItem.en];
+        while (options.length < 4) {
+            let r = pool[Math.floor(Math.random() * pool.length)].en;
+            if (!options.includes(r)) options.push(r);
+        }
+        options.sort(() => Math.random() - 0.5);
+        renderOptions(options, currentCorrectItem.en);
     }
-    options.sort(() => Math.random() - 0.5);
+}
 
+// 輔助函式：渲染選項按鈕
+function renderOptions(options, correctText) {
     const container = document.getElementById('quiz-options');
     container.innerHTML = '';
     options.forEach(opt => {
         const btn = document.createElement('button');
         btn.className = "option-btn w-full p-4 rounded-2xl bg-slate-50 text-slate-700 font-bold border-2 border-transparent transition-all";
         btn.innerText = opt;
-        btn.onclick = () => checkAnswer(btn, opt);
+        btn.onclick = () => checkAnswer(btn, opt, correctText);
         container.appendChild(btn);
     });
 }
 
-function checkAnswer(btn, opt) {
+// 修正 checkAnswer 判斷邏輯
+function checkAnswer(btn, opt, correctText) {
     const feedback = document.getElementById('quiz-feedback');
-    if (opt === currentCorrectItem.en) {
+    if (opt === correctText) {
         btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
         feedback.innerText = "✨ Correct!";
         feedback.className = "mt-6 font-bold text-emerald-500";
@@ -475,6 +496,7 @@ function checkAnswer(btn, opt) {
         feedback.className = "mt-6 font-bold text-red-500";
     }
 }
+
 
 function closeQuiz() { 
     document.getElementById('quiz-modal').style.display = 'none'; 
